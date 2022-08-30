@@ -5,6 +5,9 @@ using UnityEngine;
 [RequireComponent(typeof(Stateable))]
 public class Damageable : MonoBehaviour
 {
+    [SerializeField] Transform damagePivot;
+
+    public Vector3 Position => damagePivot.position;
     private Stateable status;
 
     private void Start()
@@ -12,17 +15,18 @@ public class Damageable : MonoBehaviour
         status = GetComponent<Stateable>();
     }
 
-
-    public void OnDamageable(Stateable attacker)
+    public void OnDamaged(Stateable attacker)
     {
         if (!status.IsAlive)
             return;
 
-        // 데미지를 받고 죽었다면 죽는 이벤트 실행.
-        if(!status.OnDamage(attacker.power))
-        {
+        float finalDamage = Mathf.Clamp(attacker.power - (status.defence * 0.5f), 1, 9999);
+        status.Decrease(finalDamage);
+
+        Debug.Log("데미지를 받았다 : " + finalDamage);
+
+        if (!status.IsAlive)
             OnDead();
-        }
     }
     private void OnDead()
     {

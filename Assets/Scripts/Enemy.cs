@@ -8,6 +8,7 @@ using UnityEditor;
 #endif
 
 [RequireComponent(typeof(NavMeshAgent))]
+[RequireComponent(typeof(Stateable))]
 public class Enemy : MonoBehaviour
 {
     private enum STATE
@@ -18,7 +19,7 @@ public class Enemy : MonoBehaviour
         Attack,     // 공격 : 대상을 공격한다.
     }
 
-    [SerializeField] Transform target;      // 플레이어(=타겟)
+    [SerializeField] Damageable target;      // 플레이어(=타겟)
     [SerializeField] float stayTime;        // 대기 시간.
 
     [Header("Range")]
@@ -27,9 +28,12 @@ public class Enemy : MonoBehaviour
     [SerializeField] float attackRange;     // 공격 범위.
 
     private NavMeshAgent agent;
+    private Stateable status;
+    private Attackable attackable;
 
-    private STATE state;    // 현재 상태.
-    private float timer;    // 대기 시간 타이머.
+    private STATE state;            // 현재 상태.
+    private float timer;            // 대기 시간 타이머.
+    private float nextAttackTime;   // 다음 공격 가능 시간.
 
     private Vector3 birthPoint;     // 탄생 지점(=원점 위치)
     private Vector3 patrolPoint;    // 정찰 지점.
@@ -37,6 +41,7 @@ public class Enemy : MonoBehaviour
     private int groundLayerMask;    // 지면 레이어 마스크.
     private int playerLayerMask;    // 플레이어 레이어 마스크.
 
+    private bool isSetPatrolPoint;  // 정찰 지점이 준비가 되었는가?
     private bool isInDetectRange;   // 탐지 범위에 플레이어가 들어왔는가?
     private bool isInAttackRange;   // 공격 범위에 플레이어가 들어왔는가?
 
@@ -46,7 +51,16 @@ public class Enemy : MonoBehaviour
         timer = 0f;
 
         birthPoint = transform.position;
+
         agent = GetComponent<NavMeshAgent>();
+        status = GetComponent<Stateable>();
+        attackable = GetComponent<Attackable>();    // 근거리 or 원거리.
+
+        // 스테이터스에 있는 값을 대입한다.
+        attackRange = status.attackRange;
+        agent.speed = status.moveSpeed;
+
+        Debug.Log(status.moveSpeed);
 
         // 비트 플레그이기 때문에 쉬프트 연산으로 계산한다.
         playerLayerMask = 1 << LayerMask.NameToLayer("Player");
@@ -56,38 +70,33 @@ public class Enemy : MonoBehaviour
     void Update()
     {
         // 탐지, 공격 범위에 플레이어가 들어왔는지 체크.
-        isInDetectRange = Physics.CheckSphere(transform.position, detectionRange);
-        isInAttackRange = Physics.CheckSphere(transform.position, attackRange);
+        isInDetectRange = Physics.CheckSphere(transform.position, detectionRange, playerLayerMask);
+        isInAttackRange = Physics.CheckSphere(transform.position, attackRange, playerLayerMask);
 
-        switch(state)
+        // 추적. (탐지 범위에는 들어왔는데 공격 범위에 들어오지 않았다.
+        if(isInDetectRange && !isInAttackRange)
         {
-            case STATE.Stay:
-                OnStay();
-                break;
-
-            case STATE.Patrol:
-                OnPatrol();
-                break;
-
-            case STATE.Chase:
-                OnChase();
-                break;
-
-            case STATE.Attack:
-                OnAttack();
-                break;
+            OnChase();
+        }
+        // 공격. (탐지 범위에도 들어왓고 공격 범위에도 들어왔다.)
+        else if(isInDetectRange && isInAttackRange)
+        {
+            OnAttack();
+        }
+        // 추적.
+        else if(isSetPatrolPoint)
+        {
+            OnPatrol();
+        }
+        else
+        {
+            OnStay();
         }
     }
 
     private void OnStay()
     {
-        // 만약 대기중에 플레이어가 탐지 범위에 들어왔다면
-        // 상태를 추적단계로 변경한다.
-        if(isInDetectRange)
-        {
-            state = STATE.Chase;
-            return;
-        }
+        state = STATE.Stay;
 
         timer += Time.deltaTime;
         if(timer >= stayTime)
@@ -103,46 +112,48 @@ public class Enemy : MonoBehaviour
             RaycastHit hit;
             if(Physics.Raycast(point, Vector3.down, out hit, float.MaxValue, groundLayerMask))
             {
-                patrolPoint = hit.point;
-                state = STATE.Patrol;
+                patrolPoint = hit.point;        // 정찰 포인트 대입.
+                isSetPatrolPoint = true;        // 정찰 지점을 지정했다.
             }
         }
     }
     private void OnPatrol()
     {
-        // 만약 정찰중에 플레이어가 탐지 범위에 들어왔다면
-        // 상태를 추적단계로 변경한다.
-        if (isInDetectRange)
-        {
-            state = STATE.Chase;
-            return;
-        }
+        state = STATE.Patrol;
 
         agent.SetDestination(patrolPoint);                          // 목적지 설정.
         if (agent.hasPath && agent.remainingDistance <= 0.1f)       // 목적지가 있고, 남은거리가 0.1이하일때.
         {
             // 도착했다.
-            state = STATE.Stay;
+            isSetPatrolPoint = false;
         }
 
     }   
     private void OnChase()
     {
-        // 추적 중 공격 범위에 들어온다면 공격 상태로 변경.
-        if (isInAttackRange)
-        {
-            state = STATE.Attack;
-            return;
-        }
-
-        agent.SetDestination(target.position);
+        state = STATE.Chase;
+        agent.SetDestination(target.Position);
     }
     private void OnAttack()
     {
-        
+        state = STATE.Attack;
+        agent.SetDestination(transform.position);
+
+        if(nextAttackTime <= Time.time)
+        {
+            nextAttackTime = Time.time + status.attackRate;
+            attackable.Attack(target);
+        }
     }
 
 #if UNITY_EDITOR
+    private void OnDrawGizmos()
+    {
+        Handles.color = Color.white;
+        GUIStyle style = new GUIStyle() { fontSize = 20};
+        Handles.Label(transform.position, state.ToString());
+    }
+
     private void OnDrawGizmosSelected()
     {
         Handles.color = Color.yellow;

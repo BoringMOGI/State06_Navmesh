@@ -21,8 +21,12 @@ public class Stateable : MonoBehaviour
     [SerializeField] Status basic;     // 기본 스테이터스.
     [SerializeField] Status grow;      // 성장 스테이터스.
 
+    public string Name => name;
     public float Level => level;
     public float hp { get; private set; }
+    public bool IsAlive => hp > 0f;
+
+    // 스테이터스.
     public float maxHp
     {
         get
@@ -48,32 +52,31 @@ public class Stateable : MonoBehaviour
     {
         get
         {
-            return basic.attackRate + (grow.attackRate * level);
+            return basic.defence + (grow.defence * level);
         }
     }
     public float resistance
     {
         get
         {
-            return basic.attackRate + (grow.attackRate * level);
+            return basic.resistance + (grow.resistance * level);
         }
     }
     public float moveSpeed
     {
         get
         {
-            return basic.attackRate + (grow.attackRate * level);
+            return basic.moveSpeed + (grow.moveSpeed * level);
         }
     }
     public float attackRange
     {
         get
         {
-            return basic.attackRate + (grow.attackRate * level);
+            return basic.attackRange + (grow.attackRange * level);
         }
     }
 
-    public bool IsAlive => hp > 0f;
 
     private void Start()
     {
@@ -91,10 +94,13 @@ public class Stateable : MonoBehaviour
         // 최대 체력 증가에 따른 HP 증가.
         hp += (maxHp - beforeMaxHp);
     }
-    public bool OnDamage(float amount)
+    public void Increase(float amount)
+    {
+        hp = Mathf.Clamp(hp + amount, 0f, maxHp);
+    }
+    public void Decrease(float amount)
     {
         hp = Mathf.Clamp(hp - amount, 0f, maxHp);
-        return IsAlive;
     }
 
 
