@@ -30,6 +30,7 @@ public class Enemy : MonoBehaviour
     private NavMeshAgent agent;
     private Stateable status;
     private Attackable attackable;
+    private Animator anim;
 
     private STATE state;            // 현재 상태.
     private float timer;            // 대기 시간 타이머.
@@ -55,6 +56,7 @@ public class Enemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         status = GetComponent<Stateable>();
         attackable = GetComponent<Attackable>();    // 근거리 or 원거리.
+        anim = GetComponent<Animator>();
 
         // 스테이터스에 있는 값을 대입한다.
         attackRange = status.attackRange;
@@ -92,6 +94,8 @@ public class Enemy : MonoBehaviour
         {
             OnStay();
         }
+
+        anim.SetBool("isMove", state == STATE.Patrol || state == STATE.Chase);
     }
 
     private void OnStay()
@@ -142,6 +146,7 @@ public class Enemy : MonoBehaviour
         if(nextAttackTime <= Time.time)
         {
             nextAttackTime = Time.time + status.attackRate;
+            anim.SetTrigger("onAttack");
             attackable.Attack(target);
         }
     }
