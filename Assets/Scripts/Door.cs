@@ -14,25 +14,27 @@ public class Door : MonoBehaviour
     bool isMoving;              // 문이 열리거나 닫히는 중인가?
     bool isOpen;                // 열려있는가?
 
+    System.Action callback;
+
     private void Start()
     {
         obstacle = GetComponent<NavMeshObstacle>();
         isMoving = false;
         isOpen = false;
     }
-    public void OnSwitchDoor()
+    public void OnSwitchDoor(bool isOn, System.Action callback)
     {
         if (isMoving)
             return;
 
-        isMoving = true;        
+        this.callback = callback;
+        isMoving = true;    // 움직이고 있다고 알린다.
+        isOpen = isOn;      // 현재 무슨상태인지 갱신한다.
 
-        if (isOpen)
-            OnClose();
+        if (isOn)           // 열어라고 했으니...
+            OnOpen();       // 문을 연다.
         else
-            OnOpen();
-
-        isOpen = !isOpen;   // 문의 상태를 변견한다.
+            OnClose();
     }
 
     private void OnOpen()
@@ -57,12 +59,14 @@ public class Door : MonoBehaviour
             isMoving = false;
         }));     
     }
+
     IEnumerator EndAnimation(System.Action onAction)
     {
         while (anim.isPlaying)      // 애니메이션이 재생중이면..
             yield return null;      // 기다린다.
 
         onAction?.Invoke();
+        callback?.Invoke();         // 나를 호출해준 버튼에게 끝났음을 전달한다.
     }
 
 }

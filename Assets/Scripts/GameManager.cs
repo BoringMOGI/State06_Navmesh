@@ -58,6 +58,7 @@ public class GameManager : MonoBehaviour
         return isPause;
     }
 
+#if !UNITY_EDITOR
     private void OnApplicationFocus(bool focus)
     {
         if (!focus)
@@ -66,5 +67,5 @@ public class GameManager : MonoBehaviour
             OnPause();
         }
     }
-
+#endif  
 }

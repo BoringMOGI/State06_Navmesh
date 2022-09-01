@@ -52,7 +52,11 @@ public class CameraController : MonoBehaviour
     [SerializeField] float zoomOffset;  // 줌을 했을때의 정도.
     [SerializeField] float minZoom;     // 최소 줌 거리.
     [SerializeField] float maxZoom;     // 최대 줌 거리.
-    
+
+#if UNITY_EDITOR
+    [SerializeField] bool isPauseMove;
+#endif
+
     private Vector3 direction;          // 카메라가 목표점으로부터 멀어질 방향.
     private float distance;             // 카메라가 목표점으로부터 멀어질 거리.
     private InsideRect insideRect;      // 화면 안쪽 사각형. (마우스가 자유롭게 움직일 범위).
@@ -66,8 +70,8 @@ public class CameraController : MonoBehaviour
     {
         transform = base.transform;    // 나의 트랜스폼을 캐싱.
 
-        distance = Mathf.Cos(transform.rotation.x) * transform.position.y;        // 기준점에서 카메라까지의 방향.
-        direction = transform.forward * -1f;                                      // 기준점 까지의 거리
+        // 기준점에서 카메라까지의 방향.
+        distance = Mathf.Cos(transform.rotation.x) * transform.position.y;        direction = transform.forward * -1f;                                      // 기준점 까지의 거리
         camPivot = transform.position + (direction * -1f * distance);             // 카메라의 기준점.
 
         // 마우스가 가장자리로 갔을 때 화면을 움직이기 위해 안쪽 사각형을 계산함.
@@ -128,6 +132,11 @@ public class CameraController : MonoBehaviour
     }
     private void OnMouseEdge()
     {
+#if UNITY_EDITOR
+        if (isPauseMove)
+            return;
+#endif
+
         // 만약 마우스 포인터가 화면 안에 있다면..
         if (insideRect.IsInside)
             return;

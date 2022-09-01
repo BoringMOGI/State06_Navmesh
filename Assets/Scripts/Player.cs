@@ -36,7 +36,10 @@ public class Player : MonoBehaviour
     {
         Collider[] colliders = Physics.OverlapSphere(transform.position, 3f);
         if (colliders.Length <= 0)
+        {
+            InteractUI.Instance.CloseUI();
             return;
+        }
 
         // 검색된 콜라이더 배열에서 인터페이스를 구현한 객체 중
         // 가장 거리가 짧은 대상을 찾는다.
@@ -47,12 +50,16 @@ public class Player : MonoBehaviour
 
         // 검색 결과 인터렉터가 없을 경우 리턴한다.
         if (handle.Count() <= 0)
+        {
+            InteractUI.Instance.CloseUI();
             return;
+        }
 
         // 거리 정렬 기준 0번째가 가장 가까운 상호작용자다.
         IInteraction interactor = handle.ToArray()[0];
 
-        Debug.Log($"key:{interactor.Key}, name:{interactor.Name}");
+        // UI출력
+        InteractUI.Instance.UpdateUI(interactor);
 
         // 상호작용자가 원하는 키를 눌렀다면 작동을 시킨다.
         if(Input.GetKeyDown(interactor.Key))
