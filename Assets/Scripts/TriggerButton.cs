@@ -5,10 +5,10 @@ using UnityEngine.Events;
 
 public interface IInteraction
 {
-    string Name { get; }
+    string ActionName { get; }
     KeyCode Key { get; }
     Vector3 Position { get; }    // 대상자의 오브젝트 위치.
-    Vector3 UiPostion { get; }   // UI가 출력될 위치.
+    Vector3 UiPosition { get; }   // UI가 출력될 위치.
 
     void OnInteract();           // 동작을 하라!
 }
@@ -37,9 +37,9 @@ public class TriggerButton : MonoBehaviour, IInteraction
 
     #region 인터페이스 내용.
 
-    string IInteraction.Name => isOn ? (onName.uiName) : (offName.uiName);
+    string IInteraction.ActionName => isOn ? (onName.uiName) : (offName.uiName);
     KeyCode IInteraction.Key => shortcutKey;
-    Vector3 IInteraction.UiPostion => uiPivot.position;
+    Vector3 IInteraction.UiPosition => uiPivot.position;
     Vector3 IInteraction.Position => transform.position;
 
     #endregion

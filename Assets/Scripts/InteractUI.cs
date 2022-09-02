@@ -36,14 +36,14 @@ public class InteractUI : MonoBehaviour
         group.alpha = 1f;
 
         shortcutText.text = target.Key.ToString();
-        contentText.text = target.Name;
+        contentText.text = target.ActionName;
 
         // Fit width.
         RectTransform rect = contentText.rectTransform;
         rect.sizeDelta = new Vector2(contentText.preferredWidth, rect.sizeDelta.y);
 
         // target의 위치(월드 좌표)를 UI를 출력하기 위한 위치(스크린 좌표)로 맞춰주기 위해서.
-        Vector2 screenPoint = Camera.main.WorldToScreenPoint(target.UiPostion);
+        Vector2 screenPoint = Camera.main.WorldToScreenPoint(target.UiPosition);
         transform.position = screenPoint;
     }
 
