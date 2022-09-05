@@ -62,8 +62,6 @@ public class Enemy : MonoBehaviour
         attackRange = status.attackRange;
         agent.speed = status.moveSpeed;
 
-        Debug.Log(status.moveSpeed);
-
         // 비트 플레그이기 때문에 쉬프트 연산으로 계산한다.
         playerLayerMask = 1 << LayerMask.NameToLayer("Player");
         groundLayerMask = 1 << LayerMask.NameToLayer("Ground");

@@ -51,7 +51,6 @@ public class NameField : MonoBehaviour
         // 만약 변수의 값이 달라지면..
         if(isVisible != target.IsVisible)
         {
-            Debug.Log("네임 필드 변경 : " + target.IsVisible);
             isVisible = target.IsVisible;
             jobText.gameObject.SetActive(isVisible);
             nameText.gameObject.SetActive(isVisible);
