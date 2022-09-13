@@ -1547,6 +1547,7 @@ GameObject:
   - component: {fileID: 693608565}
   - component: {fileID: 693608564}
   - component: {fileID: 693608566}
+  - component: {fileID: 693608567}
   m_Layer: 5
   m_Name: Chat
   m_TagString: Untagged
@@ -1626,11 +1627,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7420ca8d312c064db427be0b31a2e5a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  server: {fileID: 693608567}
   textField: {fileID: 1665565697}
   inputField: {fileID: 136965247}
   nameColor: {r: 0.9058824, g: 0.8470589, b: 0.6156863, a: 1}
   limitLine: 20
-  channelName: Local
+--- !u!114 &693608567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 693608562}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d45f856402d69f48a5157c0c6a087f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  chatUI: {fileID: 693608566}
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
