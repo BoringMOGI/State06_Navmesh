@@ -14,8 +14,22 @@ namespace ChatNetwork
     [System.Serializable]
     public class Message
     {        
+        public enum TYPE
+        {
+            Default,     // 기본 메시지.
+            Chatting,    // 채팅 메시지.
+        }
+
         public string channel;
         public string msg;
+        public TYPE type;
+
+        public Message(string channel, string msg)
+        {
+            this.channel = channel;
+            this.msg = msg;
+            type = TYPE.Default;
+        }
 
         public override string ToString()
         {
@@ -28,6 +42,14 @@ namespace ChatNetwork
 
         public string userName;
         public string job;
+
+        public ChatMessage(string channel, string msg, string userName, string job)
+            : base(channel, msg)
+        {
+            this.userName = userName;
+            this.job = job;
+            type = TYPE.Chatting;
+        }
 
         public override string ToString()
         {
@@ -137,26 +159,47 @@ public class ChatServer : MonoBehaviour, IChatClientListener
         if (client == null)
             return;
 
-        string json = JsonUtility.ToJson(message);
+        string json = string.Empty;
+        switch(message.type)
+        {
+            case Message.TYPE.Default:
+                json = JsonUtility.ToJson(message);
+                break;
+
+            case Message.TYPE.Chatting:
+                ChatMessage chatMessage = message as ChatMessage;
+                if(chatMessage != null)
+                    json = JsonUtility.ToJson(chatMessage);
+                break;
+        }
+        
         if (!client.PublishMessage(currentChannelName, json))
             Debug.Log("메세지를 보낼 수 없습니다.");
     }
 
     // 채널로부터 메시지를 수신한다.
-    private void OnReceivedMessage(Message message)
+    private void OnReceivedMessage(string json)
     {
-        Channel channel = channelList[message.channel];
+        // 서버로부터 전송받은 json 문자열의 type을 가져오는 방법.
+        Dictionary<string, string> obj = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+        Message.TYPE type = (Message.TYPE)System.Enum.Parse(typeof(Message.TYPE), obj["type"]);
 
-        // 수신한 메시지를 텍스트(string)형식으로 변경해 채널에 추가.
-        channel.AddMessage(message.ToString());
-
-        // 만약 내가 포커싱 하고 있는 채널과 수신된 메시지의 채널이 같을 경우.
-        // 등록되어있는 리스너들에게 알려준다.
-        if(message.channel == currentChannelName)
+        // 복호화 시킨 데이터를 가리키는 Message 참조형 변수.
+        Message message = null;
+        switch(type)
         {
-            // chatUI에게 메시지 전달.
-            chatUI.OnUpdateChatView(channel.AllMessage);
+            case Message.TYPE.Default:
+                message = JsonUtility.FromJson<Message>(json);
+                break;
+            case Message.TYPE.Chatting:
+                message = JsonUtility.FromJson<ChatMessage>(json);
+                break;
         }
+
+        Channel channel = channelList[message.channel];     // 채널 리스트에서 이름으로 채널 데이터 가져옴.
+        channel.AddMessage(message.ToString());             // 해당 채널 내부에 메세지 추가.
+
+        chatUI.OnUpdateChatView(channel.AllMessage);        // 해당 채널의 모든 채팅 기록을 UI에 출력.
     }
 
 
@@ -198,12 +241,6 @@ public class ChatServer : MonoBehaviour, IChatClientListener
         ChannelCreationOptions option = new ChannelCreationOptions() { PublishSubscribers = true };
         client.Subscribe(currentChannelName, messagesFromHistory: 0, creationOptions: option);
     }
-
-    private void OnGUI()
-    {
-        GUI.Label(new Rect(10, 10, 300, 300), "AAA", new GUIStyle() { fontSize = 40 });
-    }
-
     public void OnDisconnected()
     {
         Debug.Log("서버와의 접속이 끊어졌다.");
@@ -215,12 +252,8 @@ public class ChatServer : MonoBehaviour, IChatClientListener
     {
         for (int i = 0; i < senders.Length; i++)
         {
-            // json형태로 수신된 문자열을 Message객체로 convert시킨다.
-            string json = messages[i].ToString();
-            Message message = JsonUtility.FromJson<Message>(json);
-
             // 수신 함수 호출.
-            OnReceivedMessage(message);
+            OnReceivedMessage(messages[i].ToString());
         }
     }
     // 귓속말 수신.

@@ -9,11 +9,14 @@ using ChatNetwork;
 [RequireComponent(typeof(ChatServer))]
 public class ChatUI : MonoBehaviour
 {
-
     [SerializeField] TMP_Text textField;            // 입력된 채팅이 들어갈 필드.
     [SerializeField] TMP_InputField inputField;     // 나의 입력 필드.
     [SerializeField] Color nameColor;               // 닉네임 색상.
     [SerializeField] int limitLine;                 // 최대 입력 라인 수.
+
+    [Header("Channel")]
+    [SerializeField] ChannelButton channelPrefab;   // 채널 프리팹.
+    [SerializeField] Transform channelParent;       // 채널 오브젝트의 부모 오브젝트.
 
     RectTransform textFieldRect;                    // 텍스트 필드의 사각 트랜스폼.
     ChatServer server;
@@ -33,6 +36,11 @@ public class ChatUI : MonoBehaviour
         // 서버에 접속 시도!!
         server = GetComponent<ChatServer>();
         server.ConnectToServer(userName);
+
+        // 기본적으로 존재해야하는 Local 채널 생성.
+        OnAddChannel("Local", true);
+        OnAddChannel("Unity");
+        OnAddChannel("Free");
     }
     private void Update()
     {
@@ -52,21 +60,27 @@ public class ChatUI : MonoBehaviour
         // 입력 필드의 값을 지워버린다.
         inputField.text = string.Empty;
 
-        // 메세지를 채팅 서버로 보낸다.
-        server.OnSendMessage(new ChatMessage() { 
-            channel = server.currentChannelName,
-            userName = userName,
-            job = job,
-            msg = str 
-        });
-        
-      
+        // 입력한 문자열을 메세지 객체로 만들어서 채팅 서버로 보낸다.
+        server.OnSendMessage(new ChatMessage(server.currentChannelName, str, userName, job));        
 
         // 다시 재입력 할 수 있도록 활성화 해준다.
         // 최초에 Select를 호출하면 이벤트 시스템에 선택되고 자체적으로 Initializer를 불러 Activate한다.
         // 여기서 Enter를 치면 포커싱이 풀리는 것이 아니라 Deactivate된다.
         //inputField.Select();
         inputField.ActivateInputField();
+    }
+
+    public void OnClickAddChannel()
+    {
+        InputPopup.Instance.Show("채널명을 입력하세요", (channelName) => {
+            OnAddChannel(channelName);
+        });
+    }
+    private void OnAddChannel(string channelName, bool isDefault = false)
+    {
+        ChannelButton button = Instantiate(channelPrefab, channelParent);   // 새로운 채널 추가.
+        button.transform.SetSiblingIndex(channelParent.childCount - 2);     // 항상 마지막 전 index로 추가.
+        button.Setup(channelName, 0, isDefault);                            // 채널 버튼 생성.
     }
 
     // 텍스트 뷰에 채팅을 추가한다.
