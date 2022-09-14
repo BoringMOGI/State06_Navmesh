@@ -21,12 +21,14 @@ namespace ChatNetwork
         }
 
         public string channel;
+        public string id;
         public string msg;
         public TYPE type;
 
-        public Message(string channel, string msg)
+        public Message(string channel, string id, string msg)
         {
             this.channel = channel;
+            this.id = id;
             this.msg = msg;
             type = TYPE.Default;
         }
@@ -40,13 +42,13 @@ namespace ChatNetwork
     {
         private static string FORMAT = "[{0}:{1}] <color=#{2}>{3}({4}) : </color>{5}";
 
-        public string userName;
+        public string nickName;
         public string job;
 
-        public ChatMessage(string channel, string msg, string userName, string job)
-            : base(channel, msg)
+        public ChatMessage(string channel, string id, string msg, string nickName, string job)
+            : base(channel, id, msg)
         {
-            this.userName = userName;
+            this.nickName = nickName;
             this.job = job;
             type = TYPE.Chatting;
         }
@@ -59,9 +61,97 @@ namespace ChatNetwork
                 time.Hour.ToString("00"),
                 time.Minute.ToString("00"),
                 ColorUtility.ToHtmlStringRGB(Color.white),
-                userName,
+                nickName,
                 job,
                 msg);
+        }
+    }
+    public class Channel
+    {
+        // static 변수.
+        private static Dictionary<string, Channel> list = new Dictionary<string, Channel>();
+
+        private static int MAX_CHAT_COUNT = 30;              // 최대 저장 가능 채팅 수.
+        private static string currentName;                   // 현재 선택 중인 채널 명.
+
+        // 현재 선택중인 채널 객체.
+        public static Channel Current => list.ContainsKey(currentName) ? list[currentName] : null;
+
+        // 멤버 면수.
+        private ChatChannel info;          // 채팅 채널 정보.
+        private Queue<string> records;     // 수신 메시지.
+
+        public string Name { get; private set; }        // 채널 이름.
+        public bool IsNewMessage { get; private set; }  // 신규 메시지 플래그.
+
+        private Channel(string name)
+        {
+            // 최초에 채널 생성시 info는 비어있다. (서버로 연결 시도 중.. 혹은 무언가)
+            info = null;
+            records = new Queue<string>();
+            currentName = "Local";
+            Name = name;
+        }
+
+        public static void AddChannel(string channelName, params string[] messages)
+        {
+            // 이미 채널이 추가되어 있다면 실행하지 않는다.
+            if (list.ContainsKey(channelName))
+                return;
+
+            // 새로운 채널 생성. 전달된 메세지 대입.
+            Channel newChannel = new Channel(channelName);
+            foreach (string message in messages)
+                newChannel.AddMessage(message);
+
+            // 리스트에 추가.
+            list.Add(channelName, newChannel);
+        }
+        public static void RemoveChannel(string channelName)
+        {
+            // 채널 삭제.
+            if (list.ContainsKey(channelName))
+                list.Remove(channelName);
+        }
+        public static Channel GetChannel(string channelName)
+        {
+            return list[channelName];
+        }
+        public static bool IsContains(string channelName)
+        {
+            return list.ContainsKey(channelName);
+        }
+        public static void Clear()
+        {
+            list?.Clear();              // 채널 리스트 초기화.
+            currentName = "Local";      // 현재 채널의 이름을 Local로 초기화.
+        }
+
+
+        // 멤버 함수.
+        public void LinkedChatChannel(ChatChannel info)
+        {
+            this.info = info;
+        }
+        public void AddMessage(string message)
+        {
+            // 메시지를 추가한다. 최대 개수를 넘으면 가장 마지막 메시지를 지운다.
+            records.Enqueue(message);
+            if (records.Count > MAX_CHAT_COUNT)
+                records.Dequeue();
+
+            // 새로운 메시지가 왔다고 Flag 처리.
+            IsNewMessage = true;
+        }
+        public string GetAllMessage()
+        {
+            // 메세지를 받아갔으니 Flag 비활성화.
+            IsNewMessage = false;
+            return string.Join('\n', records);
+        }
+        public void Select()
+        {
+            currentName = Name;
         }
     }
 }
@@ -69,53 +159,11 @@ namespace ChatNetwork
 [RequireComponent(typeof(ChatUI))]
 public class ChatServer : MonoBehaviour, IChatClientListener
 {
-    #region 변수
-
-    public class Channel
-    {
-        static int MAX_CHAT_COUNT = 30;
-
-        ChatChannel info;          // 채팅 채널 정보.
-        Queue<string> records;     // 수신 메시지.
-
-        public Channel(ChatChannel info)
-        {
-            this.info = info;
-            records = new Queue<string>();
-        }
-
-        public string Name => info.Name;
-        public int UserCount => info.Subscribers.Count;
-        public string[] AllUsers => info.Subscribers.Select((user) => user).ToArray();
-        public string AllMessage => string.Join('\n', records);
-
-        public void AddMessage(string message)
-        {
-            // 메시지를 추가한다. 최대 개수를 넘으면 가장 마지막 메시지를 지운다.
-            records.Enqueue(message);
-            if (records.Count > MAX_CHAT_COUNT)
-                records.Dequeue();
-        }
-    }
-
     // 멤버 변수.
-    Dictionary<string, Channel> channelList;    // 내가 구독중인 채널 리스트.
-    ChatClient client;                          // 채팅 클라이언트(서버와 연결된 나)
-    ChatUI chatUI;
+    private ChatClient client;         // 채팅 클라이언트(서버와 연결된 나)
+    private static string userID;      // 나의 이름.
 
-    public string currentChannelName
-    {
-        get;
-        private set;
-    }
-
-    #endregion
-
-
-    void Awake()
-    {
-        chatUI = GetComponent<ChatUI>();
-    }
+    public static string UserID => userID;
 
     private void Update()
     {
@@ -126,16 +174,18 @@ public class ChatServer : MonoBehaviour, IChatClientListener
     }
 
     // 서버에 접속하겠다.
-    public void ConnectToServer(string userName)
+    public void ConnectToServer(string userID)
     {
-        Debug.Log("포톤 서버에 접속 시도...");
-
         // 서버와 비연결된 상태가 아니라면 리턴한다.
         if (client != null && client.State != ChatState.Uninitialized)
             return;
 
-        // 채널 리스트 객체 생성.
-        channelList = new Dictionary<string, Channel>();
+        // 사용자 이름 초기화.
+        ChatServer.userID = userID;
+
+        // 채널 정보를 초기화 시킨다.
+        Debug.Log("포톤 서버에 접속 시도...");
+        Channel.Clear();
 
         // 백그라운드 상태가 되면 기본적으로 '일시정지' 상태가 된다.
         // 그렇게되면 채팅 서버와의 연결이 끊어진다.
@@ -147,10 +197,24 @@ public class ChatServer : MonoBehaviour, IChatClientListener
         string appVersion = "1.0";
 
         // 인증서 : 채팅 서버 내에서 나를 의미(식별)하는 고유한 문자열.
-        AuthenticationValues authValues = new AuthenticationValues(userName);
+        AuthenticationValues authValues = new AuthenticationValues(userID);
 
         // 클라이언트가 chatId서버에 인증서를 들고 연결을 시도한다.
         client.Connect(chatId, appVersion, authValues);
+    }
+    public void ConnectToChannel(string channelName, bool isSelected = false)
+    {
+        // 채널 객체 추가.
+        Channel.AddChannel(channelName, "서버에 접속 중입니다...");
+
+        // 초기 선택 상태.
+        if(isSelected)
+            Channel.GetChannel(channelName).Select();
+
+        // 마스터(채텅) 서버와의 연결이 성공적으로 이루어졌으니
+        // 실제 메시지가 오가는 채널에 입장한다(구독한다)
+        ChannelCreationOptions option = new ChannelCreationOptions() { PublishSubscribers = true };
+        client.Subscribe(channelName, messagesFromHistory: 0, creationOptions: option);
     }
 
     // 채널에 메시지를 송신한다.
@@ -159,6 +223,10 @@ public class ChatServer : MonoBehaviour, IChatClientListener
         if (client == null)
             return;
 
+        // 서버로 메세지를 보낼 때 내 메세지는 로컬에 저장한다.
+        Channel.GetChannel(message.channel).AddMessage(message.ToString());
+
+        // 서버로 보내기 위해 json으로 파싱.
         string json = string.Empty;
         switch(message.type)
         {
@@ -173,15 +241,20 @@ public class ChatServer : MonoBehaviour, IChatClientListener
                 break;
         }
         
-        if (!client.PublishMessage(currentChannelName, json))
+        if (!client.PublishMessage(message.channel, json))
             Debug.Log("메세지를 보낼 수 없습니다.");
     }
 
     // 채널로부터 메시지를 수신한다.
     private void OnReceivedMessage(string json)
     {
-        // 서버로부터 전송받은 json 문자열의 type을 가져오는 방법.
+        // 서버로부터 수신 받은 메세지 중 나의 메세지는 생략한다.
+        // 나의 메세지는 보내는 시점에 이미 채널 객체 내부에 저장할 것이기 때문이다.
         Dictionary<string, string> obj = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+        if (obj["id"] == userID)
+            return;
+
+        // 타입으로 분류.
         Message.TYPE type = (Message.TYPE)System.Enum.Parse(typeof(Message.TYPE), obj["type"]);
 
         // 복호화 시킨 데이터를 가리키는 Message 참조형 변수.
@@ -196,10 +269,9 @@ public class ChatServer : MonoBehaviour, IChatClientListener
                 break;
         }
 
-        Channel channel = channelList[message.channel];     // 채널 리스트에서 이름으로 채널 데이터 가져옴.
-        channel.AddMessage(message.ToString());             // 해당 채널 내부에 메세지 추가.
-
-        chatUI.OnUpdateChatView(channel.AllMessage);        // 해당 채널의 모든 채팅 기록을 UI에 출력.
+        // 해당하는 채널에 메세지 추가.
+        Channel channel = Channel.GetChannel(message.channel);
+        channel.AddMessage(message.ToString());
     }
 
 
@@ -234,12 +306,7 @@ public class ChatServer : MonoBehaviour, IChatClientListener
     {
         // OnAddChat("채팅 서버 접속을 성공했습니다.");
         // 기본 채널 이름 (Default)
-        currentChannelName = "Local";
-
-        // 마스터(채텅) 서버와의 연결이 성공적으로 이루어졌으니
-        // 실제 메시지가 오가는 채널에 입장한다(구독한다)
-        ChannelCreationOptions option = new ChannelCreationOptions() { PublishSubscribers = true };
-        client.Subscribe(currentChannelName, messagesFromHistory: 0, creationOptions: option);
+        ConnectToChannel("Local", true);
     }
     public void OnDisconnected()
     {
@@ -273,20 +340,29 @@ public class ChatServer : MonoBehaviour, IChatClientListener
     {
         for (int i = 0; i < channels.Length; i++)
         {
+            string name = channels[i];
+            bool result = results[i];
+
             // 구독(접속) 실패의 경우 해당 루프는 실행하지 않는다.
-            if (!results[i])
+            // 그리고 가상의 채널은 삭제한다.
+            if (!result)
+            {
+                Channel.RemoveChannel(name);
+                // 추가로 UI에게 채널 버튼을 삭제하라고 알림.
                 continue;
+            }
 
-            ChatChannel channel = null;
+            // (포톤)채팅 채널 정보
+            ChatChannel chatChannel = null;
+            client.TryGetChannel(name, out chatChannel);
 
-            // 구독에 성공한 chennels[i]의 채널 데이터를 달라.
-            if (!client.TryGetChannel(channels[i], out channel))
-                continue;
-
-            // 받은 채널 데이터를 우리의 데이터 'Channel'로 변경 후 리스트에 추가.
-            channelList.Add(channels[i], new Channel(channel));
+            // 해당하는 채널에 성공 메세지와 (포톤)채팅 채널 정보 연결.
+            Channel channel = Channel.GetChannel(name);
+            channel.AddMessage("채널 입장 성공!");
+            channel.LinkedChatChannel(chatChannel);
         }
     }
+
     // 채널에서 나갔다.
     public void OnUnsubscribed(string[] channels)
     {

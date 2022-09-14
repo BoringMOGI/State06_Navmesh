@@ -39,8 +39,6 @@ public class ChatUI : MonoBehaviour
 
         // 기본적으로 존재해야하는 Local 채널 생성.
         OnAddChannel("Local", true);
-        OnAddChannel("Unity");
-        OnAddChannel("Free");
     }
     private void Update()
     {
@@ -48,6 +46,17 @@ public class ChatUI : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Return) && !inputField.isFocused)
         {
             inputField.Select();
+        }
+
+        // 새로운 메시지가 왔는지 체크.
+        if(Channel.Current != null && Channel.Current.IsNewMessage)
+        {
+            // 텍스트 필드에 채널의 텍스트를 가져와 대입 한다.
+            textField.text = Channel.Current.GetAllMessage();
+
+            // 텍스트 필드의 크기와 위치를 재조정 한다.
+            textFieldRect.sizeDelta = new Vector2(textFieldRect.sizeDelta.x, textField.preferredHeight);
+            textFieldRect.localPosition = Vector3.zero;
         }
     }
 
@@ -61,21 +70,15 @@ public class ChatUI : MonoBehaviour
         inputField.text = string.Empty;
 
         // 입력한 문자열을 메세지 객체로 만들어서 채팅 서버로 보낸다.
-        server.OnSendMessage(new ChatMessage(server.currentChannelName, str, userName, job));        
+        Channel current = Channel.Current;
+        server.OnSendMessage(new ChatMessage(current.Name, ChatServer.UserID, str, userName, job));
 
         // 다시 재입력 할 수 있도록 활성화 해준다.
         // 최초에 Select를 호출하면 이벤트 시스템에 선택되고 자체적으로 Initializer를 불러 Activate한다.
         // 여기서 Enter를 치면 포커싱이 풀리는 것이 아니라 Deactivate된다.
         //inputField.Select();
         inputField.ActivateInputField();
-    }
-
-    public void OnClickAddChannel()
-    {
-        InputPopup.Instance.Show("채널명을 입력하세요", (channelName) => {
-            OnAddChannel(channelName);
-        });
-    }
+    }        
     private void OnAddChannel(string channelName, bool isDefault = false)
     {
         ChannelButton button = Instantiate(channelPrefab, channelParent);   // 새로운 채널 추가.
@@ -83,14 +86,23 @@ public class ChatUI : MonoBehaviour
         button.Setup(channelName, 0, isDefault);                            // 채널 버튼 생성.
     }
 
-    // 텍스트 뷰에 채팅을 추가한다.
-    public void OnUpdateChatView(string str)
+    public void OnClickAddChannel()
     {
-        // 텍스트 필드에 매개변수 str의 값을 대입한다.
-        textField.text = str;
+        InputPopup.Instance.Show("채널명을 입력하세요", (channelName, isConfirm) =>
+        {
+            if (!isConfirm)
+                return;
 
-        // 텍스트 필드의 크기와 위치를 재조정 한다.
-        textFieldRect.sizeDelta = new Vector2(textFieldRect.sizeDelta.x, textField.preferredHeight);
-        textFieldRect.localPosition = Vector3.zero;
+            // 채널명이 중복된다. 재귀 호출.
+            if (Channel.IsContains(channelName))
+            {
+                OnClickAddChannel();                    // 채널 중복. 재귀 호출.
+            }
+            else
+            {
+                OnAddChannel(channelName);              // 채널 버튼 추가.
+                server.ConnectToChannel(channelName);   // 채널 입장.
+            }
+        });
     }
 }

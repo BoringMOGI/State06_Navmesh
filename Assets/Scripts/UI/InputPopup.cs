@@ -14,7 +14,7 @@ public class InputPopup : MonoBehaviour
     static InputPopup instance;
     public static InputPopup Instance => instance;
 
-    private System.Action<string> callback;
+    private System.Action<string, bool> callback;
 
     private void Awake()
     {
@@ -29,7 +29,7 @@ public class InputPopup : MonoBehaviour
         panel.SetActive(false);
     }
 
-    public void Show(string title, System.Action<string> callback)
+    public void Show(string title, System.Action<string, bool> callback)
     {
         this.callback = callback;
 
@@ -48,12 +48,13 @@ public class InputPopup : MonoBehaviour
             return;
         }
 
-        callback?.Invoke(inputField.text);
+        callback?.Invoke(inputField.text, true);
         callback = null;
         panel.SetActive(false);
     }
     public void Cancel()
     {
+        callback?.Invoke(string.Empty, false);
         callback = null;
         panel.SetActive(false);
     }
