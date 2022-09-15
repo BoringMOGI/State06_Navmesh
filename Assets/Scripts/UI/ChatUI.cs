@@ -7,7 +7,7 @@ using System;
 using ChatNetwork;
 
 [RequireComponent(typeof(ChatServer))]
-public class ChatUI : MonoBehaviour
+public class ChatUI : InputHandler
 {
     [SerializeField] TMP_Text textField;            // 입력된 채팅이 들어갈 필드.
     [SerializeField] TMP_InputField inputField;     // 나의 입력 필드.
@@ -24,14 +24,12 @@ public class ChatUI : MonoBehaviour
     string userName = "테스터AB";
     string job = "가렌";
 
-    private void Start()
+    void Start()
     {
         textField.text = string.Empty;
         inputField.text = string.Empty;
 
         textFieldRect = textField.rectTransform;
-
-        inputField.onEndEdit.AddListener(OnEndEdit);
 
         // 서버에 접속 시도!!
         server = GetComponent<ChatServer>();
@@ -39,15 +37,16 @@ public class ChatUI : MonoBehaviour
 
         // 기본적으로 존재해야하는 Local 채널 생성.
         OnAddChannel("Local", true);
+
+        // 이벤트 등록
+        inputField.onSubmit.AddListener(OnEndEdit);
+
+        AddEvent(KeyCode.Return, OnSelectInputField);
+        AddEvent(KeyCode.I, () => { Debug.Log("인벤토리가 열렸다!!!!"); });
     }
+
     private void Update()
     {
-        // 엔터키를 눌렀을 때 입력 필드가 선택되어있지 않았다면...
-        if (Input.GetKeyDown(KeyCode.Return) && !inputField.isFocused)
-        {
-            inputField.Select();
-        }
-
         // 새로운 메시지가 왔는지 체크.
         if(Channel.Current != null && Channel.Current.IsNewMessage)
         {
@@ -59,6 +58,14 @@ public class ChatUI : MonoBehaviour
             textFieldRect.localPosition = Vector3.zero;
         }
     }
+
+    private void OnSelectInputField()
+    {
+        // 엔터키를 눌렀을 때 입력 필드가 선택되어있지 않았다면...
+        if (!inputField.isFocused)
+            inputField.Select();
+    }
+
 
     // '내가' 채팅을 입력했을 때 불리는 이벤트 함수.
     private void OnEndEdit(string str)

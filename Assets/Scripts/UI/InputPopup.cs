@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class InputPopup : MonoBehaviour
+public class InputPopup : InputHandler
 {
     [SerializeField] GameObject panel;
     [SerializeField] Text titleText;
@@ -26,7 +26,7 @@ public class InputPopup : MonoBehaviour
         //confirmButton.onClick.AddListener(Confirm);
         //cancelButton.onClick.AddListener(Cancel);
 
-        panel.SetActive(false);
+        panel.SetActive(false);                
     }
 
     public void Show(string title, System.Action<string, bool> callback)
@@ -38,6 +38,21 @@ public class InputPopup : MonoBehaviour
         titleText.text = title;             // 타이틀(지시문) 텍스트 입력.
         inputField.text = string.Empty;     // 입력 필드 초기화.
         inputField.Select();                // 입력 필드 초기 선택.
+
+        // 이벤트 등록.
+        AddInherentOwner();
+        AddEvent(KeyCode.Return, Confirm);
+        AddEvent(KeyCode.Escape, Cancel);
+    }
+    private void Close()
+    {
+        callback = null;
+        panel.SetActive(false);
+
+        // 이벤트 해제.
+        RemoveInherentOwner();
+        RemoveEvent(KeyCode.Return);
+        RemoveEvent(KeyCode.Escape);
     }
 
     public void Confirm()
@@ -49,13 +64,13 @@ public class InputPopup : MonoBehaviour
         }
 
         callback?.Invoke(inputField.text, true);
-        callback = null;
-        panel.SetActive(false);
+        Close();
     }
     public void Cancel()
     {
         callback?.Invoke(string.Empty, false);
-        callback = null;
-        panel.SetActive(false);
+        Close();
     }
+
+   
 }

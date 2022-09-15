@@ -8,6 +8,7 @@ using ExitGames.Client.Photon;  // 클라이언트 생성용.
 using System.Linq;
 
 using ChatNetwork;
+using System;
 
 namespace ChatNetwork
 {
@@ -164,6 +165,12 @@ public class ChatServer : MonoBehaviour, IChatClientListener
     private static string userID;      // 나의 이름.
 
     public static string UserID => userID;
+
+    private void Start()
+    {
+
+        
+    }
 
     private void Update()
     {
