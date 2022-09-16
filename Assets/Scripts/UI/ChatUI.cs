@@ -5,6 +5,7 @@ using TMPro;
 using System;
 
 using ChatNetwork;
+using ChatNetwork.Message;
 
 [RequireComponent(typeof(ChatServer))]
 public class ChatUI : InputHandler
@@ -33,10 +34,11 @@ public class ChatUI : InputHandler
 
         // 서버에 접속 시도!!
         server = GetComponent<ChatServer>();
-        server.ConnectToServer(userName);
+        server.ConnectToServer(userName, () => {
 
-        // 기본적으로 존재해야하는 Local 채널 생성.
-        OnAddChannel("Local", true);
+            // 서버에 접속이 완료되면 Local채널을 추가한다.
+            OnAddChannel("Local", true);
+        });
 
         // 이벤트 등록
         inputField.onSubmit.AddListener(OnEndEdit);
@@ -86,13 +88,18 @@ public class ChatUI : InputHandler
         //inputField.Select();
         inputField.ActivateInputField();
     }        
-    private void OnAddChannel(string channelName, bool isDefault = false)
+
+    // 채널을 새로 추가한다.
+    public void OnAddChannel(string channelName, bool isDefault = false)
     {
+        server.ConnectToChannel(channelName, true);                         // 채널 입장 (데이터 추가)
+
         ChannelButton button = Instantiate(channelPrefab, channelParent);   // 새로운 채널 추가.
         button.transform.SetSiblingIndex(channelParent.childCount - 2);     // 항상 마지막 전 index로 추가.
-        button.Setup(channelName, 0, isDefault);                            // 채널 버튼 생성.
+        button.Setup(channelName, 0, isDefault);                            // 채널 버튼 생성.        
     }
 
+    // 채널 추가 버튼 : 채널명을 유저에게 입력 받아온다.
     public void OnClickAddChannel()
     {
         InputPopup.Instance.Show("채널명을 입력하세요", (channelName, isConfirm) =>
@@ -107,8 +114,7 @@ public class ChatUI : InputHandler
             }
             else
             {
-                OnAddChannel(channelName);              // 채널 버튼 추가.
-                server.ConnectToChannel(channelName);   // 채널 입장.
+                OnAddChannel(channelName, true);              // 채널 버튼 추가.
             }
         });
     }
