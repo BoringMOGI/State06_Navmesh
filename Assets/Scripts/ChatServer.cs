@@ -178,6 +178,12 @@ namespace ChatNetwork
         public void LinkedChatChannel(ChatChannel info)
         {
             this.info = info;
+            
+            // 채팅 채널과 연결이 되면 이미 접속중인 유저들의 이름을 받아와 대입한다.
+            foreach(string user in info.Subscribers)
+                userList.Add(new ChatUser(user, ChatUser.STATUS.Online));
+
+            IsUpdateUser = true;
         }
         public void Select()
         {

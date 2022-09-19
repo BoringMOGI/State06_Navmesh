@@ -19,6 +19,10 @@ public class ChatUI : InputHandler
     [SerializeField] ChannelButton channelPrefab;   // 채널 프리팹.
     [SerializeField] Transform channelParent;       // 채널 오브젝트의 부모 오브젝트.
 
+    [Header("User")]
+    [SerializeField] ChatUserUI userPrefab;
+    [SerializeField] Transform userParent;
+
     RectTransform textFieldRect;                    // 텍스트 필드의 사각 트랜스폼.
     ChatServer server;
 
@@ -49,15 +53,22 @@ public class ChatUI : InputHandler
 
     private void Update()
     {
+        if (Channel.Current == null)
+            return;
+
         // 새로운 메시지가 왔는지 체크.
-        if(Channel.Current != null && Channel.Current.IsNewMessage)
+        if(Channel.Current.IsNewMessage)
         {
             // 텍스트 필드에 채널의 텍스트를 가져와 대입 한다.
             textField.text = Channel.Current.GetAllMessage();
 
             // 텍스트 필드의 크기와 위치를 재조정 한다.
             textFieldRect.sizeDelta = new Vector2(textFieldRect.sizeDelta.x, textField.preferredHeight);
-            textFieldRect.localPosition = Vector3.zero;
+            //textFieldRect.localPosition = Vector3.zero;
+        }
+        if(Channel.Current.IsUpdateUser)
+        {
+
         }
     }
 
