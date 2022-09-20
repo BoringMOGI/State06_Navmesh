@@ -298,7 +298,7 @@ GameObject:
   - component: {fileID: 485040435}
   - component: {fileID: 485040434}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: contentText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1432,7 +1432,7 @@ Canvas:
   m_SortingBucketNormalizedSize: 0
   m_AdditionalShaderChannelsFlag: 25
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 10
   m_TargetDisplay: 0
 --- !u!224 &1187954888
 RectTransform:
@@ -1474,6 +1474,7 @@ MonoBehaviour:
   nameField: {fileID: 752675498}
   roomField: {fileID: 585477677}
   remember: {fileID: 19044430}
+  connectButton: {fileID: 1777613936}
 --- !u!1 &1301549096
 GameObject:
   m_ObjectHideFlags: 0
@@ -1782,6 +1783,7 @@ GameObject:
   - component: {fileID: 1777613935}
   - component: {fileID: 1777613934}
   - component: {fileID: 1777613933}
+  - component: {fileID: 1777613936}
   m_Layer: 5
   m_Name: ConnectButton
   m_TagString: Untagged
@@ -1904,6 +1906,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1777613931}
   m_CullTransparentMesh: 1
+--- !u!114 &1777613936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1777613931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3806eb753c681545aad8efd0d69b3ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  button: {fileID: 1777613933}
+  buttonImage: {fileID: 1777613934}
+  contentText: {fileID: 485040434}
+  enableColor: {r: 0.9607844, g: 0.9607844, b: 0.9607844, a: 1}
+  disableColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
 --- !u!1 &1782235235
 GameObject:
   m_ObjectHideFlags: 0

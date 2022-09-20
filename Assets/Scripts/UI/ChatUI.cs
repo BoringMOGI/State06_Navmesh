@@ -23,11 +23,11 @@ public class ChatUI : InputHandler
     [SerializeField] ChatUserUI userPrefab;
     [SerializeField] Transform userParent;
 
-    RectTransform textFieldRect;                    // 텍스트 필드의 사각 트랜스폼.
-    ChatServer server;
+    protected RectTransform textFieldRect;                    // 텍스트 필드의 사각 트랜스폼.
+    protected ChatServer server;
 
-    string userName = "테스터AB";
-    string job = "가렌";
+    protected string userName = "테스터AB";
+    protected string job = "가렌";
 
     void Start()
     {
@@ -35,20 +35,23 @@ public class ChatUI : InputHandler
         inputField.text = string.Empty;
 
         textFieldRect = textField.rectTransform;
-
-        // 서버에 접속 시도!!
         server = GetComponent<ChatServer>();
+
+        // 이벤트 등록
+        inputField.onSubmit.AddListener(OnEndEdit);
+        AddEvent(KeyCode.Return, OnSelectInputField);
+
+        ConnectToChatServer();
+    }
+
+    protected virtual void ConnectToChatServer()
+    {
+        // 서버에 접속 시도!!
         server.ConnectToServer(userName, () => {
 
             // 서버에 접속이 완료되면 Local채널을 추가한다.
             OnAddChannel("Local", true);
         });
-
-        // 이벤트 등록
-        inputField.onSubmit.AddListener(OnEndEdit);
-
-        AddEvent(KeyCode.Return, OnSelectInputField);
-        AddEvent(KeyCode.I, () => { Debug.Log("인벤토리가 열렸다!!!!"); });
     }
 
     private void Update()

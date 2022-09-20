@@ -101,7 +101,7 @@ namespace ChatNetwork
         private static Dictionary<string, Channel> list = new Dictionary<string, Channel>();
 
         private static int MAX_CHAT_COUNT = 30;              // 최대 저장 가능 채팅 수.
-        private static string currentName;                   // 현재 선택 중인 채널 명.
+        private static string currentName = string.Empty;    // 현재 선택 중인 채널 명.
 
         // 현재 선택중인 채널 객체.
         public static Channel Current => list.ContainsKey(currentName) ? list[currentName] : null;             
@@ -168,10 +168,9 @@ namespace ChatNetwork
         {
             // 최초에 채널 생성시 info는 비어있다. (서버로 연결 시도 중.. 혹은 무언가)
             info = null;
-            records = new Queue<string>();
-            userList = new List<ChatUser>();
-            currentName = "Local";
-            Name = name;
+            records = new Queue<string>();          // 메세지 기록.
+            userList = new List<ChatUser>();        // 유저 목록.
+            Name = name;                            // 채팅 채널 이름.
         }
 
         // 멤버 함수.
