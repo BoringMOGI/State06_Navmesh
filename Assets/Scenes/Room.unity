@@ -243,6 +243,7 @@ MonoBehaviour:
   roomNameText: {fileID: 1365617844}
   roomInfoText: {fileID: 1536839620}
   roomChat: {fileID: 2144027408}
+  prefab: {fileID: 8937988514199889775, guid: 0262a2c4400f8e545bd80ecb696e093b, type: 3}
 --- !u!1 &613018101
 GameObject:
   m_ObjectHideFlags: 0

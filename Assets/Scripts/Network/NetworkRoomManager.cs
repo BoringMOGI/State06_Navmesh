@@ -20,7 +20,6 @@ public class NetworkRoomManager : MonoBehaviourPunCallbacks
 
     [SerializeField] RoomChatUI roomChat;
 
-
     string roomName;                    // 현재 접속중인 방의 이름.
     Room room;                          // 현재 접속중인 방 정보.
     List<User> userList;                // 입장 중인 유저의 리스트.
@@ -63,6 +62,9 @@ public class NetworkRoomManager : MonoBehaviourPunCallbacks
 
         // 방에 성공적으로 접속 시, 룸 전용 채팅 UI에 접속한다.
         roomChat.OnJoinedRoom(PhotonNetwork.NickName, room.Name);
+
+        // 방에 접속시 나(user)의 객체를 생성한다.
+        PhotonNetwork.Instantiate("RoomUser", Vector3.zero, Quaternion.identity);
     }
     private void EnterUser(User user)
     {
