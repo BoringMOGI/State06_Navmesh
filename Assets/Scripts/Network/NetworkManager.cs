@@ -28,7 +28,7 @@ public class NetworkManager : MonoBehaviourPunCallbacks
         SaveOrLoad(false);                          // 데이터 로드.
         PhotonNetwork.GameVersion = gameVersion;    // 게임 버전 (버전 간 간섭이 없다)
         PhotonNetwork.ConnectUsingSettings();       // 마스터 서버 접속 시도.
-
+        
         connectButton.Switch(false, "서버 연결 중");
     }
 

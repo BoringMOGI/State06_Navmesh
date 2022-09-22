@@ -12,7 +12,6 @@ public class NetworkRoomManager : MonoBehaviourPunCallbacks
 {
     public static NetworkRoomManager Instance { get; private set; }
 
-    [SerializeField] RoomUserUI userPrefab;
     [SerializeField] Transform userParent;
 
     [SerializeField] TMP_Text roomNameText;     // 방 이름 텍스트.
@@ -20,11 +19,12 @@ public class NetworkRoomManager : MonoBehaviourPunCallbacks
 
     [SerializeField] RoomChatUI roomChat;
 
-    string roomName;                    // 현재 접속중인 방의 이름.
-    Room room;                          // 현재 접속중인 방 정보.
-    List<User> userList;                // 입장 중인 유저의 리스트.
+    string roomName;                            // 현재 접속중인 방의 이름.
+    Room room;                                  // 현재 접속중인 방 정보.
 
-    System.Action<bool> onSuccess;      // 룸 입장 성공 여부 함수.
+    List<RoomUserUI> userList;                  // 접속중인 유저의 클론 리스트.
+
+    System.Action<bool> onSuccess;              // 룸 입장 성공 여부 함수.
 
     private void Awake()
     {
@@ -32,7 +32,7 @@ public class NetworkRoomManager : MonoBehaviourPunCallbacks
     }
     private void Start()
     {
-        userList = new List<User>();
+        userList = new List<RoomUserUI>();
     }
 
     public void Setup(string name, System.Action<bool> onSuccess)
@@ -57,29 +57,33 @@ public class NetworkRoomManager : MonoBehaviourPunCallbacks
         roomName = room.Name;                       // 방에 성공적으로 접속 후. 실제 방 이름을 대입.
         roomNameText.text = roomName;               // (실제)방이름 텍스트에 대입.
 
-        userList.AddRange(room.Players.Values);     // 현재 접속중인 유저의 정보를 리스트에 대입.
-        UpdateUserList();
-
         // 방에 성공적으로 접속 시, 룸 전용 채팅 UI에 접속한다.
         roomChat.OnJoinedRoom(PhotonNetwork.NickName, room.Name);
 
         // 방에 접속시 나(user)의 객체를 생성한다.
-        PhotonNetwork.Instantiate("RoomUser", Vector3.zero, Quaternion.identity);
+        // Setup은 RPC를 이용해 네트워크 상의 모든 '나'에게 전송된다.
+        GameObject obj = PhotonNetwork.Instantiate("Room/RoomUser", Vector3.zero, Quaternion.identity);
+        RoomUserUI userUI = obj.GetComponent<RoomUserUI>();
+        userUI.transform.SetParent(userParent);
+        userUI.Setup(PhotonNetwork.LocalPlayer);
+              
+        UpdateUserList();
     }
     private void EnterUser(User user)
     {
-        userList.Add(user);
         UpdateUserList();
     }
     private void LeaveUser(User user)
     {
-        userList.Remove(user);
         UpdateUserList();
     }
     private void UpdateUserList()
     {
+        // 현재 방에 존재하는 모든 클론을 찾는다.
+        RoomUserUI[] users = FindObjectsOfType<RoomUserUI>();
+
         // actorNumber를 기준으로 유저들을 오름차순 정렬한다.
-        var query = userList.OrderBy((user) => user.ActorNumber).ToList();
+        var query = users.OrderBy((user) => user.ActorNumber).ToList();
         userList.Clear();
         userList.AddRange(query);
 
@@ -90,23 +94,24 @@ public class NetworkRoomManager : MonoBehaviourPunCallbacks
 
         roomInfoText.text = string.Format(FORMAT, infoColor, hostName);
 
-
-        // 기존 유저 목록 UI 삭제.
-        foreach (Transform child in userParent)
-            Destroy(child.gameObject);
-
-        // user의 count만큼 프리팹 생성.
+        // 정렬한 UI를 순서대로 부모 밑에 둔다.
         for (int i = 0; i < userList.Count; i++)
         {
-            RoomUserUI ui = Instantiate(userPrefab, userParent);
-            User user = userList[i];
+            RoomUserUI user = userList[i];
+            user.transform.SetAsLastSibling();
 
-            ui.Setup(i + 1, user.NickName, user.IsMasterClient);
+            // 내 UI일 경우 내부 데이터를 업데이트 시킨다.
+            if (user.IsMine)
+                user.UpdateInfo();
         }
     }
 
-
-
+    
+    // 준비 버튼을 눌렀다.
+    public void OnClickReady()
+    {
+        
+    }
 
 
     // 방 생성 (Create)
